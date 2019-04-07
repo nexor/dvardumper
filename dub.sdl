@@ -1,0 +1,5 @@
+name        "dvardumper"
+description "Variable dumper"
+authors     "Pavel Chebotarev"
+
+license "MIT"

@@ -1,0 +1,4 @@
+name "basic"
+description "A simple var dumping example"
+
+dependency "dvardumper" version="~master" path="../../"
