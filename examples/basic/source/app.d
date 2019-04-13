@@ -14,17 +14,43 @@ struct MyStruct
     bool b = true;
     MyArray myArr;
     void* voidPointer;
+
+    void myMethod()
+    {
+        // do nothing
+    }
+}
+
+class MyClass
+{
+    MyStruct myStruct;
 }
 
 int main(string[] args)
 {
     auto varDumper = new VarDumper();
-    auto s = MyStruct();
 
-    varDumper.dump(s);
-
-    int a = 6;
-    varDumper.dump(a, V!a);
+    dumpBasicType(varDumper);
+    dumpStruct(varDumper);
+    dumpClass(varDumper);
 
     return 0;
+}
+
+void dumpBasicType(Dumper d)
+{
+    int a = 6;
+    d.dump(a, V!a);
+}
+
+void dumpStruct(Dumper d)
+{
+    auto s = MyStruct();
+    d.dump(s);
+}
+
+void dumpClass(Dumper d)
+{
+    auto myClass = new MyClass();
+    d.dump(myClass);
 }

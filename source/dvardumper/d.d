@@ -1,6 +1,8 @@
 module dvardumper.d;
 
 public import dvardumper.dumper;
+import std.meta : Alias;
+import std.traits;
 
 template V(alias a)
 {
@@ -10,7 +12,6 @@ template V(alias a)
 TypeVar toTypeVar(T)(T var, string varname = "")
 {
     import std.conv : to;
-    import std.traits;
 
     TypeVar typeVar;
 
@@ -19,8 +20,11 @@ TypeVar toTypeVar(T)(T var, string varname = "")
                        .name(varname);
         static foreach(member; __traits(allMembers, T))
         {
-            (cast(AggregateTypeVar)typeVar)
-                .addField(mixin("var." ~ member).toTypeVar(member));
+            static if (isProperty!(T, member)) {
+                pragma(msg, "Dumping " ~ T.stringof ~ "." ~ member);
+                (cast(AggregateTypeVar)typeVar)
+                    .addField(__traits(getMember, var, member).toTypeVar(member));
+            }
         }
 
     } else static if (isBasicType!T) {
@@ -33,6 +37,12 @@ TypeVar toTypeVar(T)(T var, string varname = "")
     }
 
     return typeVar;
+}
+
+template isProperty(T, string field)
+{
+    alias fieldValue = Alias!(__traits(getMember, T, field));
+    enum isProperty = !isType!fieldValue && !isFunction!fieldValue;
 }
 
 abstract class TypeVar
