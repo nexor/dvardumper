@@ -20,7 +20,9 @@ TypeVar toTypeVar(T)(T var, string varname = "")
                        .name(varname);
         static foreach(member; __traits(allMembers, T))
         {
-            static if (isProperty!(T, member)) {
+            static if (!isAccessible!(T, member)) {
+                pragma(msg, "Skipping non-accessible member " ~ T.stringof ~ "." ~ member);
+            } else static if (isProperty!(T, member)) {
                 pragma(msg, "Dumping " ~ T.stringof ~ "." ~ member);
                 (cast(AggregateTypeVar)typeVar)
                     .addField(__traits(getMember, var, member).toTypeVar(member));
@@ -39,10 +41,15 @@ TypeVar toTypeVar(T)(T var, string varname = "")
     return typeVar;
 }
 
-template isProperty(T, string field)
+template isAccessible(T, string member)
 {
-    alias fieldValue = Alias!(__traits(getMember, T, field));
-    enum isProperty = !isType!fieldValue && !isFunction!fieldValue;
+    enum isAccessible = __traits(getProtection, __traits(getMember, T, member)) == "public";
+}
+
+template isProperty(T, string member)
+{
+    alias fieldValue = Alias!(__traits(getMember, T, member));
+    enum isProperty = !isType!fieldValue && !isFunction!fieldValue && !__traits(isTemplate, fieldValue);
 }
 
 abstract class TypeVar

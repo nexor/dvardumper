@@ -15,6 +15,8 @@ struct MyStruct
     MyArray myArr;
     void* voidPointer;
 
+    private string privateString;
+
     void myMethod()
     {
         // do nothing
