@@ -1,4 +1,4 @@
-module dvardumper.d;
+module dvardumper.typevar;
 
 public import dvardumper.dumper;
 import std.meta : Alias;

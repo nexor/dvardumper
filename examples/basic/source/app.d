@@ -1,4 +1,4 @@
-import dvardumper.d;
+import dvardumper;
 
 struct MyArray
 {

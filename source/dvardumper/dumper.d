@@ -1,7 +1,7 @@
 module dvardumper.dumper;
 
 import std.stdio;
-import dvardumper.d;
+import dvardumper.typevar;
 
 void dump(T)(Dumper d, T var, string varname = "")
 {
