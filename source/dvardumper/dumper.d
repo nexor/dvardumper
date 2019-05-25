@@ -42,6 +42,8 @@ class VarDumper : Dumper
         {
             if (auto v = cast(BasicTypeVar)var) {
                 dumpBasicTypeVar(v, level);
+            } else if (auto v = cast(PointerTypeVar)var) {
+                dumpPointerTypeVar(v, level);
             } else if (auto v = cast(AggregateTypeVar)var) {
                 dumpAggregateTypeVar(v, level);
             } else if (auto v = cast(UnknownTypeVar)var) {
@@ -59,6 +61,12 @@ class VarDumper : Dumper
             } else {
                 writefln("%s(%d) = %s", v.typeName, v.size, v.value);
             }
+        }
+
+        void dumpPointerTypeVar(PointerTypeVar v, ushort level = 0)
+        {
+            writeIndent(level);
+            writefln("%s(%d) %s = %#x", v.typeName, v.size, v.name, v.pointer);
         }
 
         void dumpAggregateTypeVar(AggregateTypeVar v, ushort level = 0)

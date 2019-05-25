@@ -33,6 +33,10 @@ TypeVar toTypeVar(T)(T var, string varname = "")
         typeVar = new BasicTypeVar(typeid(var).to!string, var.sizeof)
                        .value(var.to!string)
                        .name(varname);
+    } else static if (isPointer!T) {
+        typeVar = new PointerTypeVar(typeid(var).to!string, var.sizeof)
+                        .pointer(cast(void*)var)
+                        .name(varname);
     } else {
         typeVar = new UnknownTypeVar(typeid(var).to!string, var.sizeof)
                         .name(varname);
@@ -130,6 +134,32 @@ class BasicTypeVar : TypeVar
         typeof(this) value(string value)
         {
             _value = value;
+
+            return this;
+        }
+}
+
+class PointerTypeVar : TypeVar
+{
+    protected:
+        void* _pointer;
+
+    public:
+        this(string typeName, size_t size)
+        {
+            super(typeName, size);
+        }
+
+        @property pure
+        void* pointer()
+        {
+            return _pointer;
+        }
+
+        @property pure
+        typeof(this) pointer(void* ptr)
+        {
+            _pointer = ptr;
 
             return this;
         }

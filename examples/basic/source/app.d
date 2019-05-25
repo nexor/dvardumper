@@ -26,6 +26,7 @@ struct MyStruct
 class MyClass
 {
     MyStruct myStruct;
+    int* intPointer;
 }
 
 int main(string[] args)
@@ -48,11 +49,15 @@ void dumpBasicType(Dumper d)
 void dumpStruct(Dumper d)
 {
     auto s = MyStruct();
+    s.voidPointer = &s;
+
     d.dump(s);
 }
 
 void dumpClass(Dumper d)
 {
     auto myClass = new MyClass();
+    myClass.intPointer = &myClass.myStruct.f2;
+
     d.dump(myClass);
 }
