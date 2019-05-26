@@ -52,6 +52,93 @@ TypeVar toTypeVar(T)(T var, string varname = "")
     return typeVar;
 }
 
+@("Test basic type to TypeVar conversion")
+unittest
+{
+    import unit_threaded;
+
+    int i = 42;
+    TypeVar typeVar = i.toTypeVar("ivar");
+
+    auto basicTypeVar = cast(BasicTypeVar)typeVar;
+    basicTypeVar.shouldNotBeNull;
+
+    basicTypeVar.name.should == "ivar";
+    basicTypeVar.value.should == "42";
+}
+
+@("Test pointer type to TypeVar conversion")
+unittest
+{
+    import unit_threaded;
+
+    int* i = new int(5);
+
+    (*i).should == 5;
+
+    TypeVar typeVar = i.toTypeVar("pointer");
+
+    auto pointerTypeVar = cast(PointerTypeVar)typeVar;
+    pointerTypeVar.shouldNotBeNull;
+
+    pointerTypeVar.name.should == "pointer";
+    int* pointer = cast(int*)pointerTypeVar.pointer;
+
+    (cast(size_t)pointer).shouldBeGreaterThan(0);
+    (*pointer).should == 5;
+}
+
+@("Test array type to TypeVar conversion")
+unittest
+{
+    import unit_threaded;
+
+    int[] arr = [1,2,3];
+    TypeVar typeVar = arr.toTypeVar("arr_array");
+
+    auto arrayTypeVar = cast(ArrayTypeVar)typeVar;
+    arrayTypeVar.shouldNotBeNull;
+
+    arrayTypeVar.name.should == "arr_array";
+    arrayTypeVar.elementCount.should == 3;
+    arrayTypeVar.elementSize.should == int.sizeof;
+    arrayTypeVar.isPrintable.should == false;
+}
+
+@("Test unknown type to TypeVar conversion")
+unittest
+{
+    import unit_threaded;
+
+    TypeVar typeVar = null.toTypeVar("unknown_type");
+
+    auto unknownTypeVar = cast(UnknownTypeVar)typeVar;
+    unknownTypeVar.shouldNotBeNull;
+
+    unknownTypeVar.name.should == "unknown_type";
+}
+
+@("Test aggregate type to TypeVar conversion")
+unittest
+{
+    import unit_threaded;
+
+    struct S
+    {
+        int s1 = 4;
+        bool s2 = true;
+    }
+
+    S s;
+    TypeVar typeVar = s.toTypeVar("s_struct");
+
+    auto aggregateTypeVar = cast(AggregateTypeVar)typeVar;
+    aggregateTypeVar.shouldNotBeNull;
+
+    aggregateTypeVar.name.should == "s_struct";
+    aggregateTypeVar.fields.length.should == 2;
+}
+
 template isAccessible(T, string member)
 {
     enum isAccessible = __traits(getProtection, __traits(getMember, T, member)) == "public";

@@ -3,3 +3,11 @@ description "Variable dumper"
 authors     "Pavel Chebotarev"
 
 license "MIT"
+
+configuration "unittest" {
+    dependency "unit-threaded" version="*"
+    mainSourceFile "bin/ut.d"
+    excludedSourceFiles "src/main.d"
+    targetType "executable"
+    preBuildCommands "dub run unit-threaded -c gen_ut_main -- -f bin/ut.d"
+}
