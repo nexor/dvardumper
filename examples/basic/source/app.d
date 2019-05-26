@@ -9,7 +9,7 @@ struct MyStruct
 {
     align(1):
 
-    string f1;
+    string f1 = "rus:ЪЁ, chi:漢字";
     int f2 = 4;
     bool b = true;
     MyArray myArr;

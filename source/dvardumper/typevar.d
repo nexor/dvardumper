@@ -37,6 +37,13 @@ TypeVar toTypeVar(T)(T var, string varname = "")
         typeVar = new PointerTypeVar(typeid(var).to!string, var.sizeof)
                         .pointer(cast(void*)var)
                         .name(varname);
+    } else static if (isArray!T) {
+        typeVar = new ArrayTypeVar(typeid(var), var.sizeof)
+                        .elementCount(var.length)
+                        .elementSize(ArrayElementType!T.sizeof)
+                        .isPrintable(isSomeString!T)
+                        .array(cast(byte[])var)
+                        .name(varname);
     } else {
         typeVar = new UnknownTypeVar(typeid(var).to!string, var.sizeof)
                         .name(varname);
@@ -56,9 +63,15 @@ template isProperty(T, string member)
     enum isProperty = !isType!fieldValue && !isFunction!fieldValue && !__traits(isTemplate, fieldValue);
 }
 
+template ArrayElementType(T : T[])
+{
+  alias T ArrayElementType;
+}
+
 abstract class TypeVar
 {
     protected:
+        TypeInfo _typeInfo;
         string _name; // var name or field name
         string _typeName;
         size_t _size;
@@ -162,6 +175,80 @@ class PointerTypeVar : TypeVar
             _pointer = ptr;
 
             return this;
+        }
+}
+
+class ArrayTypeVar : TypeVar
+{
+    protected:
+        byte[] _array;
+        size_t _elementCount;
+        size_t _elementSize;
+        bool   _isPrintable;
+        size_t _maxPrintCount = 512;
+
+    public:
+        this(TypeInfo typeInfo, size_t size)
+        {
+            import std.conv : to;
+
+            super(typeInfo.to!string, size);
+            _typeInfo = typeInfo;
+        }
+
+        @property pure
+        byte[] array()
+        {
+            return _array;
+        }
+
+        @property pure
+        typeof(this) array(byte[] array)
+        {
+            _array = array;
+
+            return this;
+        }
+
+        size_t elementCount()
+        {
+            return _elementCount;
+        }
+
+        typeof(this) elementCount(size_t count)
+        {
+            _elementCount = count;
+
+            return this;
+        }
+
+        size_t elementSize()
+        {
+            return _elementSize;
+        }
+
+        typeof(this) elementSize(size_t size)
+        {
+            _elementSize = size;
+
+            return this;
+        }
+
+        bool isPrintable()
+        {
+            return _isPrintable;
+        }
+
+        typeof(this) isPrintable(bool isPrintable)
+        {
+            _isPrintable = isPrintable;
+
+            return this;
+        }
+
+        size_t maxPrintCount()
+        {
+            return _maxPrintCount;
         }
 }
 

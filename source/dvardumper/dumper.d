@@ -44,6 +44,8 @@ class VarDumper : Dumper
                 dumpBasicTypeVar(v, level);
             } else if (auto v = cast(PointerTypeVar)var) {
                 dumpPointerTypeVar(v, level);
+            } else if (auto v = cast(ArrayTypeVar)var) {
+                dumpArrayTypeVar(v, level);
             } else if (auto v = cast(AggregateTypeVar)var) {
                 dumpAggregateTypeVar(v, level);
             } else if (auto v = cast(UnknownTypeVar)var) {
@@ -67,6 +69,23 @@ class VarDumper : Dumper
         {
             writeIndent(level);
             writefln("%s(%d) %s = %#x", v.typeName, v.size, v.name, v.pointer);
+        }
+
+        void dumpArrayTypeVar(ArrayTypeVar v, ushort level = 0)
+        {
+            writeIndent(level);
+            writef("%s(%d) %s[%d*%d]", v.typeName, v.size, v.name, v.elementCount, v.elementSize);
+
+            if (v.isPrintable) {
+                if (v.elementCount > v.maxPrintCount) {
+                    string value = cast(string)v.array[0..v.elementSize * v.maxPrintCount];
+                    writefln(` = "%s ..."`, value);
+                } else {
+                    writefln(` = "%s"`, cast(string)v.array);
+                }
+            } else {
+                writefln(": <%d bytes of data>", v.elementCount * v.elementSize);
+            }
         }
 
         void dumpAggregateTypeVar(AggregateTypeVar v, ushort level = 0)
