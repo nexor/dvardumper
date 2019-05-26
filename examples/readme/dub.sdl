@@ -1,0 +1,4 @@
+name "readme"
+description "A simple var dumping example for README file"
+
+dependency "dvardumper" version="~master" path="../../"
