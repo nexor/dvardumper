@@ -1,6 +1,5 @@
 module dvardumper.typevar;
 
-public import dvardumper.dumper;
 import std.meta : Alias;
 import std.traits;
 
@@ -16,8 +15,7 @@ TypeVar toTypeVar(T)(T var, string varname = "")
     TypeVar typeVar;
 
     static if (isAggregateType!T) {
-        typeVar = new AggregateTypeVar(typeid(var).to!string, var.sizeof)
-                       .name(varname);
+        typeVar = new AggregateTypeVar(typeid(var));
         static foreach(member; __traits(allMembers, T))
         {
             static if (!isAccessible!(T, member)) {
@@ -30,24 +28,22 @@ TypeVar toTypeVar(T)(T var, string varname = "")
         }
 
     } else static if (isBasicType!T) {
-        typeVar = new BasicTypeVar(typeid(var).to!string, var.sizeof)
-                       .value(var.to!string)
-                       .name(varname);
+        typeVar = new BasicTypeVar(typeid(var))
+                       .value(var.to!string);
     } else static if (isPointer!T) {
-        typeVar = new PointerTypeVar(typeid(var).to!string, var.sizeof)
-                        .pointer(cast(void*)var)
-                        .name(varname);
+        typeVar = new PointerTypeVar(typeid(var))
+                        .pointer(cast(void*)var);
     } else static if (isArray!T) {
-        typeVar = new ArrayTypeVar(typeid(var), var.sizeof)
+        typeVar = new ArrayTypeVar(typeid(var))
                         .elementCount(var.length)
                         .elementSize(ArrayElementType!T.sizeof)
                         .isPrintable(isSomeString!T)
-                        .array(cast(byte[])var)
-                        .name(varname);
+                        .array(cast(byte[])var);
     } else {
-        typeVar = new UnknownTypeVar(typeid(var).to!string, var.sizeof)
-                        .name(varname);
+        typeVar = new UnknownTypeVar(typeid(var));
     }
+
+    typeVar.name(varname);
 
     return typeVar;
 }
@@ -64,6 +60,8 @@ unittest
     basicTypeVar.shouldNotBeNull;
 
     basicTypeVar.name.should == "ivar";
+    basicTypeVar.typeName.should == "int";
+    basicTypeVar.size.should == int.sizeof;
     basicTypeVar.value.should == "42";
 }
 
@@ -82,6 +80,9 @@ unittest
     pointerTypeVar.shouldNotBeNull;
 
     pointerTypeVar.name.should == "pointer";
+    pointerTypeVar.typeName.should == "int*";
+    pointerTypeVar.size.should == (int*).sizeof;
+
     int* pointer = cast(int*)pointerTypeVar.pointer;
 
     (cast(size_t)pointer).shouldBeGreaterThan(0);
@@ -100,6 +101,8 @@ unittest
     arrayTypeVar.shouldNotBeNull;
 
     arrayTypeVar.name.should == "arr_array";
+    arrayTypeVar.typeName.should == "int[]";
+    arrayTypeVar.size.should == size_t.sizeof + size_t.sizeof;
     arrayTypeVar.elementCount.should == 3;
     arrayTypeVar.elementSize.should == int.sizeof;
     arrayTypeVar.isPrintable.should == false;
@@ -116,18 +119,20 @@ unittest
     unknownTypeVar.shouldNotBeNull;
 
     unknownTypeVar.name.should == "unknown_type";
+    unknownTypeVar.typeName.should == "typeof(null)";
+    unknownTypeVar.size.should == typeof(null).sizeof;
+}
+
+struct S
+{
+    int s1 = 4;
+    bool s2 = true;
 }
 
 @("Test aggregate type to TypeVar conversion")
 unittest
 {
     import unit_threaded;
-
-    struct S
-    {
-        int s1 = 4;
-        bool s2 = true;
-    }
 
     S s;
     TypeVar typeVar = s.toTypeVar("s_struct");
@@ -136,6 +141,8 @@ unittest
     aggregateTypeVar.shouldNotBeNull;
 
     aggregateTypeVar.name.should == "s_struct";
+    aggregateTypeVar.typeName.should == "dvardumper.typevar.S";
+    aggregateTypeVar.size.should == S.sizeof;
     aggregateTypeVar.fields.length.should == 2;
 }
 
@@ -164,6 +171,14 @@ abstract class TypeVar
         size_t _size;
 
     public:
+        this(TypeInfo typeInfo)
+        {
+            import std.conv : to;
+
+            this.typeName = typeInfo.to!string;
+            this.size = typeInfo.tsize;
+        }
+
         this(string typeName, size_t size)
         {
             this.typeName(typeName);
@@ -219,9 +234,9 @@ class BasicTypeVar : TypeVar
         string _value;
 
     public:
-        this(string typeName, size_t size)
+        this(TypeInfo typeInfo)
         {
-            super(typeName, size);
+            super(typeInfo);
         }
 
         @property pure
@@ -245,9 +260,9 @@ class PointerTypeVar : TypeVar
         void* _pointer;
 
     public:
-        this(string typeName, size_t size)
+        this(TypeInfo typeInfo)
         {
-            super(typeName, size);
+            super(typeInfo);
         }
 
         @property pure
@@ -275,12 +290,15 @@ class ArrayTypeVar : TypeVar
         size_t _maxPrintCount = 512;
 
     public:
-        this(TypeInfo typeInfo, size_t size)
+        this(TypeInfo typeInfo)
+        in
         {
-            import std.conv : to;
-
-            super(typeInfo.to!string, size);
-            _typeInfo = typeInfo;
+            assert(cast(TypeInfo_Array)typeInfo !is null
+                || cast(TypeInfo_StaticArray)typeInfo !is null);
+        }
+        body
+        {
+            super(typeInfo);
         }
 
         @property pure
@@ -341,9 +359,9 @@ class ArrayTypeVar : TypeVar
 
 class UnknownTypeVar : TypeVar
 {
-    this(string typeName, size_t size)
+    this(TypeInfo typeInfo)
     {
-        super(typeName, size);
+        super(typeInfo);
     }
 }
 
@@ -353,9 +371,9 @@ class AggregateTypeVar : TypeVar
         TypeVar[string] _fields;
 
     public:
-        this(string typeName, size_t size)
+        this(TypeInfo typeInfo)
         {
-            super(typeName, size);
+            super(typeInfo);
         }
 
         pure
