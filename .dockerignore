@@ -1,0 +1,7 @@
+Dockerfile
+*.*
+.dub/
+examples/
+!dub.*
+dvardumper
+dvardumper-test-*
