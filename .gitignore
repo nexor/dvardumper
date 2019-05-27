@@ -22,4 +22,7 @@ docs/
 
 # Code coverage
 *.lst
-/vardumper-test-*
+
+/dvardumper-test-*
+/dvardumper
+/bin
