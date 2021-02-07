@@ -49,9 +49,9 @@ class VarDumper : Dumper
             if (auto v = cast(BasicTypeVar)var) {
                 dumpBasicTypeVar(v, level, dumpOptions);
             } else if (auto v = cast(PointerTypeVar)var) {
-                dumpPointerTypeVar(v, level);
+                dumpPointerTypeVar(v, level, dumpOptions);
             } else if (auto v = cast(ArrayTypeVar)var) {
-                dumpArrayTypeVar(v, level);
+                dumpArrayTypeVar(v, level, dumpOptions);
             } else if (auto v = cast(AggregateTypeVar)var) {
                 dumpAggregateTypeVar(v, level, dumpOptions);
             } else if (auto v = cast(UnknownTypeVar)var) {
@@ -64,16 +64,25 @@ class VarDumper : Dumper
         void dumpBasicTypeVar(BasicTypeVar v, ushort level, DumpOptions dumpOptions)
         {
             writeIndent(level);
-            writefln("%s(%d) %s = %s", v.typeName, v.size, v.name, v.value);
+            writef("%s", v.typeName);
+            if (dumpOptions.showSize) {
+                writef("(%d)", v.size);
+            }
+
+            writefln(" %s = %s", v.name, v.value);
         }
 
-        void dumpPointerTypeVar(PointerTypeVar v, ushort level = 0)
+        void dumpPointerTypeVar(PointerTypeVar v, ushort level, DumpOptions dumpOptions)
         {
             writeIndent(level);
-            writefln("%s(%d) %s = %#x", v.typeName, v.size, v.name, v.pointer);
+            writef("%s", v.typeName);
+            if (dumpOptions.showSize) {
+                writef("(%d)", v.size);
+            }
+            writefln(" %s = %#x", v.name, v.pointer);
         }
 
-        void dumpArrayTypeVar(ArrayTypeVar v, ushort level = 0)
+        void dumpArrayTypeVar(ArrayTypeVar v, ushort level, DumpOptions dumpOptions)
         {
             writeIndent(level);
             string typeName = v.typeName;
@@ -87,7 +96,12 @@ class VarDumper : Dumper
             if (typeName in aliasMap) {
                 typeName = aliasMap[typeName];
             }
-            writef("%s(%d) %s[%d*%d]", typeName, v.size, v.name, v.elementCount, v.elementSize);
+
+            writef("%s", typeName);
+            if (dumpOptions.showSize) {
+                writef("(%d)", v.size);
+            }
+            writef(" %s[%d*%d]", v.name, v.elementCount, v.elementSize);
 
             if (v.isPrintable) {
                 if (v.elementCount > v.maxPrintCount) {
@@ -104,10 +118,15 @@ class VarDumper : Dumper
         void dumpAggregateTypeVar(AggregateTypeVar v, ushort level, DumpOptions dumpOptions)
         {
             writeIndent(level);
+            writef("%s", v.typeName);
+            if (dumpOptions.showSize) {
+                writef("(%d)", v.size);
+            }
+
             if (v.name !is null) {
-                writefln("%s(%d) %s {", v.typeName, v.size, v.name);
+                writefln(" %s {", v.name);
             } else {
-                writefln("%s(%d) {", v.typeName, v.size);
+                writefln(" {");
             }
 
             foreach (TypeVar field; v.fields) {
@@ -118,7 +137,7 @@ class VarDumper : Dumper
             writefln("}");
         }
 
-        void dumpUnknownTypeVar(UnknownTypeVar v, ushort level = 0)
+        void dumpUnknownTypeVar(UnknownTypeVar v, ushort level)
         {
             writeIndent(level);
             writefln("%s(%d) %s: (unknown type var)", v.typeName, v.size, v.name);
