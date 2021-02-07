@@ -1,0 +1,16 @@
+{
+	"name": "vscode-dlang",
+	"dockerFile": "Dockerfile",
+
+	"appPort": [],
+
+	"settings": {
+		"terminal.integrated.shell.linux": "/bin/bash"
+	},
+
+	"remoteUser": "vscode",
+
+	"extensions": [
+		"webfreak.code-d"
+	]
+}
