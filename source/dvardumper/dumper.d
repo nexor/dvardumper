@@ -5,25 +5,31 @@ import dvardumper.typevar;
 
 void dump(T)(Dumper d, T var, string varname = "")
 {
-    d.doDump(var.toTypeVar(varname));
+    d.doDump(var.toTypeVar(varname), DumpOptions());
 }
 
 interface Dumper
 {
-    void doDump(TypeVar);
+    void doDump(TypeVar, DumpOptions);
+}
+
+struct DumpOptions
+{
+    bool showSize = false;
 }
 
 class VarDumper : Dumper
 {
-    import std.range : repeat;
+    private:
+        string indentString = "  ";
 
     public:
-        void doDump(TypeVar var)
+        void doDump(TypeVar var, DumpOptions dumpOptions)
         {
             writefln("Dumping var %s", formatVarName(var.name));
             writeln("---------------");
 
-            dumpInternal(var);
+            dumpInternal(var, 0, dumpOptions);
 
             writefln("===============");
         }
@@ -38,16 +44,16 @@ class VarDumper : Dumper
             return "";
         }
 
-        void dumpInternal(TypeVar var, ushort level = 0)
+        void dumpInternal(TypeVar var, ushort level, DumpOptions dumpOptions)
         {
             if (auto v = cast(BasicTypeVar)var) {
-                dumpBasicTypeVar(v, level);
+                dumpBasicTypeVar(v, level, dumpOptions);
             } else if (auto v = cast(PointerTypeVar)var) {
                 dumpPointerTypeVar(v, level);
             } else if (auto v = cast(ArrayTypeVar)var) {
                 dumpArrayTypeVar(v, level);
             } else if (auto v = cast(AggregateTypeVar)var) {
-                dumpAggregateTypeVar(v, level);
+                dumpAggregateTypeVar(v, level, dumpOptions);
             } else if (auto v = cast(UnknownTypeVar)var) {
                 dumpUnknownTypeVar(v, level);
             } else {
@@ -55,14 +61,10 @@ class VarDumper : Dumper
             }
         }
 
-        void dumpBasicTypeVar(BasicTypeVar v, ushort level = 0)
+        void dumpBasicTypeVar(BasicTypeVar v, ushort level, DumpOptions dumpOptions)
         {
             writeIndent(level);
-            if (v.name != "") {
-                writefln("%s(%d) %s = %s", v.typeName, v.size, v.name, v.value);
-            } else {
-                writefln("%s(%d) = %s", v.typeName, v.size, v.value);
-            }
+            writefln("%s(%d) %s = %s", v.typeName, v.size, v.name, v.value);
         }
 
         void dumpPointerTypeVar(PointerTypeVar v, ushort level = 0)
@@ -88,13 +90,17 @@ class VarDumper : Dumper
             }
         }
 
-        void dumpAggregateTypeVar(AggregateTypeVar v, ushort level = 0)
+        void dumpAggregateTypeVar(AggregateTypeVar v, ushort level, DumpOptions dumpOptions)
         {
             writeIndent(level);
-            writefln("%s(%d) {", v.typeName, v.size);
+            if (v.name !is null) {
+                writefln("%s(%d) %s {", v.typeName, v.size, v.name);
+            } else {
+                writefln("%s(%d) {", v.typeName, v.size);
+            }
 
             foreach (TypeVar field; v.fields) {
-                dumpInternal(field, cast(ushort)(level+1));
+                dumpInternal(field, cast(ushort)(level+1), dumpOptions);
             }
 
             writeIndent(level);
@@ -109,6 +115,8 @@ class VarDumper : Dumper
 
         void writeIndent(ushort level = 0)
         {
-            write(' '.repeat(level*2));
+            import std.array : replicate;
+
+            write(indentString.replicate(level));
         }
 }
