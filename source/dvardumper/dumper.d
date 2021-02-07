@@ -76,7 +76,11 @@ class VarDumper : Dumper
         void dumpArrayTypeVar(ArrayTypeVar v, ushort level = 0)
         {
             writeIndent(level);
-            writef("%s(%d) %s[%d*%d]", v.typeName, v.size, v.name, v.elementCount, v.elementSize);
+            string typeName = v.typeName;
+            if (typeName == "immutable(char)[]") {
+                typeName = "string";
+            }
+            writef("%s(%d) %s[%d*%d]", typeName, v.size, v.name, v.elementCount, v.elementSize);
 
             if (v.isPrintable) {
                 if (v.elementCount > v.maxPrintCount) {
