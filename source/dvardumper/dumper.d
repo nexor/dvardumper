@@ -77,8 +77,15 @@ class VarDumper : Dumper
         {
             writeIndent(level);
             string typeName = v.typeName;
-            if (typeName == "immutable(char)[]") {
-                typeName = "string";
+
+            auto aliasMap = [
+                typeid(string).toString() : string.stringof,
+                typeid(dstring).toString() : dstring.stringof,
+                typeid(wstring).toString() : wstring.stringof
+            ];
+
+            if (typeName in aliasMap) {
+                typeName = aliasMap[typeName];
             }
             writef("%s(%d) %s[%d*%d]", typeName, v.size, v.name, v.elementCount, v.elementSize);
 
