@@ -18,9 +18,10 @@ TypeVar toTypeVar(T)(T var, string varname = "")
         typeVar = new AggregateTypeVar(typeid(var));
         static foreach(member; __traits(allMembers, T))
         {
+            /*
             static if (!isAccessible!(T, member)) {
                 pragma(msg, "Skipping non-accessible member " ~ T.stringof ~ "." ~ member);
-            } else static if (isProperty!(T, member)) {
+            } else */static if (isProperty!(T, member)) {
                 pragma(msg, "Dumping " ~ T.stringof ~ "." ~ member);
                 (cast(AggregateTypeVar)typeVar)
                     .addField(__traits(getMember, var, member).toTypeVar(member));

@@ -36,7 +36,6 @@ class VarDumper : Dumper
         string doDump(TypeVar var, DumpOptions dumpOptions)
         {
             buffer.clear();
-            buffer.writefln("Dumping var %s", formatVarName(var.name));
             buffer.writefln("%s", "---------------");
 
             dumpInternal(var, 0, dumpOptions);
