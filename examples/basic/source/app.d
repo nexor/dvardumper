@@ -15,7 +15,7 @@ struct MyStruct
     MyArray myArr;
     void* voidPointer;
 
-    private string privateString;
+    private string privateString = "private content";
 
     void myMethod()
     {
