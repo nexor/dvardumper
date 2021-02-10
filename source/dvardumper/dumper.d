@@ -115,7 +115,9 @@ class VarDumper : Dumper
             buffer.writef(" %s[%d*%d]", v.name, v.elementCount, v.elementSize);
 
             if (v.isPrintable) {
-                if (v.elementCount > v.maxPrintCount) {
+                if (v.isNull) {
+                    buffer.writefln(` = null`);
+                } else if (v.elementCount > v.maxPrintCount) {
                     string value = cast(string)v.array[0..v.elementSize * v.maxPrintCount];
                     buffer.writefln(` = "%s ..."`, value);
                 } else {
@@ -135,17 +137,20 @@ class VarDumper : Dumper
             }
 
             if (!v.name.empty) {
-                buffer.writefln(" %s {", v.name);
+                buffer.writef(" %s", v.name);
+            }
+
+            if (!v.isNull) {
+                buffer.writefln(" = {");
+                foreach (TypeVar field; v.fields) {
+                    dumpInternal(field, cast(ushort)(level+1), dumpOptions);
+                }
+                writeIndent(level);
+                buffer.writefln("}");
+
             } else {
-                buffer.writefln(" {");
+                buffer.writefln(" = null");
             }
-
-            foreach (TypeVar field; v.fields) {
-                dumpInternal(field, cast(ushort)(level+1), dumpOptions);
-            }
-
-            writeIndent(level);
-            buffer.writefln("}");
         }
 
         void dumpUnknownTypeVar(UnknownTypeVar v, ushort level)

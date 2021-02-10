@@ -9,37 +9,83 @@ template V(alias a)
 }
 
 TypeVar toTypeVar(T)(T var, string varname = "")
+    if (is(T == class))
+{
+    TypeInfo typeInfo = (var is null) ? typeid(T) : typeid(var);
+
+    auto typeVar = new AggregateTypeVar(typeInfo);
+
+    if (var !is null) {
+        static foreach(member; __traits(allMembers, T))
+        {
+            static if (isProperty!(T, member))
+            {
+                typeVar.addField(__traits(getMember, var, member).toTypeVar(member));
+            }
+        }
+    } else {
+        typeVar.isNull = true;
+    }
+
+    typeVar.name = varname;
+
+    return typeVar;
+}
+
+TypeVar toTypeVar(T)(T var, string varname = "")
+    if (isAggregateType!T && (!is(T == class)))
+{
+    TypeInfo typeInfo = typeid(var);
+
+    auto typeVar = new AggregateTypeVar(typeInfo);
+
+    static foreach(member; __traits(allMembers, T))
+    {
+        static if (isProperty!(T, member))
+        {
+            typeVar.addField(__traits(getMember, var, member).toTypeVar(member));
+        }
+    }
+
+
+    typeVar.name = varname;
+
+    return typeVar;
+}
+
+TypeVar toTypeVar(T)(T var, string varname = "")
+    if (isArray!T)
+{
+    import std.conv : to;
+
+    auto typeVar = new ArrayTypeVar(typeid(var))
+                        .elementCount(var.length)
+                        .elementSize(ArrayElementType!T.sizeof)
+                        .isPrintable(isSomeString!T);
+    if (var !is null) {
+        typeVar.array = cast(byte[])var;
+    } else {
+        typeVar.isNull = true;
+    }
+
+    typeVar.name = varname;
+
+    return typeVar;
+}
+
+TypeVar toTypeVar(T)(T var, string varname = "")
+    if (!isAggregateType!T && !isArray!T)
 {
     import std.conv : to;
 
     TypeVar typeVar;
 
-    static if (isAggregateType!T) {
-        typeVar = new AggregateTypeVar(typeid(var));
-        static foreach(member; __traits(allMembers, T))
-        {
-            /*
-            static if (!isAccessible!(T, member)) {
-                pragma(msg, "Skipping non-accessible member " ~ T.stringof ~ "." ~ member);
-            } else */static if (isProperty!(T, member)) {
-                pragma(msg, "Dumping " ~ T.stringof ~ "." ~ member);
-                (cast(AggregateTypeVar)typeVar)
-                    .addField(__traits(getMember, var, member).toTypeVar(member));
-            }
-        }
-
-    } else static if (isBasicType!T) {
+    static if (isBasicType!T) {
         typeVar = new BasicTypeVar(typeid(var))
-                       .value(var.to!string);
+                        .value = var.to!string;
     } else static if (isPointer!T) {
         typeVar = new PointerTypeVar(typeid(var))
                         .pointer(cast(void*)var);
-    } else static if (isArray!T) {
-        typeVar = new ArrayTypeVar(typeid(var))
-                        .elementCount(var.length)
-                        .elementSize(ArrayElementType!T.sizeof)
-                        .isPrintable(isSomeString!T)
-                        .array(cast(byte[])var);
     } else {
         typeVar = new UnknownTypeVar(typeid(var));
     }
@@ -167,6 +213,7 @@ abstract class TypeVar
 {
     protected:
         TypeInfo _typeInfo;
+        bool _isNull = false;
         string _name; // var name or field name
         string _typeName;
         size_t _size;
@@ -180,10 +227,18 @@ abstract class TypeVar
             this.size = typeInfo.tsize;
         }
 
-        this(string typeName, size_t size)
+        @property pure
+        bool isNull()
         {
-            this.typeName(typeName);
-            this.size(size);
+            return _isNull;
+        }
+
+        @property pure
+        typeof(this) isNull(bool value)
+        {
+            _isNull = value;
+
+            return this;
         }
 
         @property pure
@@ -382,6 +437,7 @@ class AggregateTypeVar : TypeVar
         in
         {
             assert(typeVar.name != "");
+            assert(!isNull);
         }
         body
         {
