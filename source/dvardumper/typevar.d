@@ -32,6 +32,55 @@ TypeVar toTypeVar(T)(T var, string varname = "")
     return typeVar;
 }
 
+
+
+
+@("Test non-null class object to TypeVar conversion")
+unittest
+{
+    import unit_threaded;
+    import std.stdio;
+
+    class S1
+    {
+        int s1 = 4;
+        bool s2 = true;
+    }
+
+    S1 s = new S1();
+    TypeVar typeVar = s.toTypeVar("s_class");
+
+    auto aggregateTypeVar = cast(AggregateTypeVar)typeVar;
+    aggregateTypeVar.shouldNotBeNull;
+
+    aggregateTypeVar.name.should == "s_class";
+    aggregateTypeVar.isNull = false;
+    aggregateTypeVar.typeName.shouldNotBeNull;
+    aggregateTypeVar.size.should == S.sizeof;
+    aggregateTypeVar.fields.length.should == 2;
+}
+
+@("Test null value class object to TypeVar conversion")
+unittest
+{
+    import unit_threaded;
+
+    class S
+    {
+        int s1;
+        string s2;
+    }
+
+    S s = null;
+
+    auto aggregateTypeVar = cast(AggregateTypeVar)s.toTypeVar("s_class");
+    aggregateTypeVar.shouldNotBeNull;
+
+    aggregateTypeVar.name.should == "s_class";
+    aggregateTypeVar.isNull.should  == true;
+    aggregateTypeVar.size.should == S.sizeof;
+}
+
 TypeVar toTypeVar(T)(T var, string varname = "")
     if (isAggregateType!T && (!is(T == class)))
 {
@@ -53,6 +102,30 @@ TypeVar toTypeVar(T)(T var, string varname = "")
     return typeVar;
 }
 
+// using namespace dvardumper.typevar
+struct S
+{
+    int s1 = 4;
+    bool s2 = true;
+}
+
+@("Test aggregate type that is not a class to TypeVar conversion")
+unittest
+{
+    import unit_threaded;
+
+    S s;
+    TypeVar typeVar = s.toTypeVar("s_struct");
+
+    auto aggregateTypeVar = cast(AggregateTypeVar)typeVar;
+    aggregateTypeVar.shouldNotBeNull;
+
+    aggregateTypeVar.name.should == "s_struct";
+    aggregateTypeVar.typeName.should == "dvardumper.typevar.S";
+    aggregateTypeVar.size.should == S.sizeof;
+    aggregateTypeVar.fields.length.should == 2;
+}
+
 TypeVar toTypeVar(T)(T var, string varname = "")
     if (isArray!T)
 {
@@ -62,15 +135,79 @@ TypeVar toTypeVar(T)(T var, string varname = "")
                         .elementCount(var.length)
                         .elementSize(ArrayElementType!T.sizeof)
                         .isPrintable(isSomeString!T);
-    if (var !is null) {
-        typeVar.array = cast(byte[])var;
+    static if (isNullable!T)
+    {
+        if (var !is null) {
+            typeVar.array = cast(byte[])var;
+        } else {
+            typeVar.isNull = true;
+        }
     } else {
-        typeVar.isNull = true;
+        typeVar.array = cast(byte[])var;
     }
 
     typeVar.name = varname;
 
     return typeVar;
+}
+
+@("Test array type to TypeVar conversion")
+unittest
+{
+    import unit_threaded;
+
+    int[] arr = [1,2,3];
+    TypeVar typeVar = arr.toTypeVar("arr_array");
+
+    auto arrayTypeVar = cast(ArrayTypeVar)typeVar;
+    arrayTypeVar.shouldNotBeNull;
+
+    arrayTypeVar.name.should == "arr_array";
+    arrayTypeVar.typeName.should == "int[]";
+    arrayTypeVar.isNull = false;
+    arrayTypeVar.size.should == size_t.sizeof + size_t.sizeof;
+    arrayTypeVar.elementCount.should == 3;
+    arrayTypeVar.elementSize.should == int.sizeof;
+    arrayTypeVar.isPrintable.should == false;
+}
+
+@("Test static array type to TypeVar conversion")
+unittest
+{
+    import unit_threaded;
+
+    int[3] arr = [1,2,3];
+    auto arrayTypeVar = cast(ArrayTypeVar)arr.toTypeVar("arr_array");
+
+    arrayTypeVar.shouldNotBeNull;
+
+    arrayTypeVar.name.should == "arr_array";
+    arrayTypeVar.typeName.should == "int[3]";
+    arrayTypeVar.isNull = false;
+    arrayTypeVar.size.should == (int[3]).sizeof;
+    arrayTypeVar.elementCount.should == 3;
+    arrayTypeVar.elementSize.should == int.sizeof;
+    arrayTypeVar.isPrintable.should == false;
+}
+
+@("Test NULL array value to TypeVar conversion")
+unittest
+{
+    import unit_threaded;
+
+    int[] arr = null;
+    TypeVar typeVar = arr.toTypeVar("arr_array");
+
+    auto arrayTypeVar = cast(ArrayTypeVar)typeVar;
+    arrayTypeVar.shouldNotBeNull;
+
+    arrayTypeVar.name.should == "arr_array";
+    arrayTypeVar.typeName.should == "int[]";
+    arrayTypeVar.isNull = true;
+    arrayTypeVar.size.should == size_t.sizeof + size_t.sizeof;
+    arrayTypeVar.elementCount.should == 0;
+    arrayTypeVar.elementSize.should == int.sizeof;
+    arrayTypeVar.isPrintable.should == false;
 }
 
 TypeVar toTypeVar(T)(T var, string varname = "")
@@ -136,25 +273,6 @@ unittest
     (*pointer).should == 5;
 }
 
-@("Test array type to TypeVar conversion")
-unittest
-{
-    import unit_threaded;
-
-    int[] arr = [1,2,3];
-    TypeVar typeVar = arr.toTypeVar("arr_array");
-
-    auto arrayTypeVar = cast(ArrayTypeVar)typeVar;
-    arrayTypeVar.shouldNotBeNull;
-
-    arrayTypeVar.name.should == "arr_array";
-    arrayTypeVar.typeName.should == "int[]";
-    arrayTypeVar.size.should == size_t.sizeof + size_t.sizeof;
-    arrayTypeVar.elementCount.should == 3;
-    arrayTypeVar.elementSize.should == int.sizeof;
-    arrayTypeVar.isPrintable.should == false;
-}
-
 @("Test unknown type to TypeVar conversion")
 unittest
 {
@@ -170,29 +288,6 @@ unittest
     unknownTypeVar.size.should == typeof(null).sizeof;
 }
 
-struct S
-{
-    int s1 = 4;
-    bool s2 = true;
-}
-
-@("Test aggregate type to TypeVar conversion")
-unittest
-{
-    import unit_threaded;
-
-    S s;
-    TypeVar typeVar = s.toTypeVar("s_struct");
-
-    auto aggregateTypeVar = cast(AggregateTypeVar)typeVar;
-    aggregateTypeVar.shouldNotBeNull;
-
-    aggregateTypeVar.name.should == "s_struct";
-    aggregateTypeVar.typeName.should == "dvardumper.typevar.S";
-    aggregateTypeVar.size.should == S.sizeof;
-    aggregateTypeVar.fields.length.should == 2;
-}
-
 template isAccessible(T, string member)
 {
     enum isAccessible = __traits(getProtection, __traits(getMember, T, member)) == "public";
@@ -200,9 +295,16 @@ template isAccessible(T, string member)
 
 template isProperty(T, string member)
 {
-    alias fieldValue = Alias!(__traits(getMember, T, member));
-    enum isProperty = !isType!fieldValue && !isFunction!fieldValue && !__traits(isTemplate, fieldValue);
+    static if (__traits(hasMember, T, member))
+    {
+        alias fieldValue = Alias!(__traits(getMember, T, member));
+        enum isProperty = !isType!fieldValue && !isFunction!fieldValue && !__traits(isTemplate, fieldValue);
+    } else {
+        enum isProperty = false;
+    }
 }
+
+enum isNullable(T) = is(typeof(null) : T);
 
 template ArrayElementType(T : T[])
 {
@@ -446,6 +548,11 @@ class AggregateTypeVar : TypeVar
 
         @property pure
         auto fields()
+        in
+        {
+            assert(!isNull, "Cannot get fields of a null object");
+        }
+        body
         {
             return _fields;
         }
