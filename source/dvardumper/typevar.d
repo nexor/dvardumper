@@ -336,7 +336,7 @@ abstract class TypeVar
         }
 
         @property pure
-        typeof(this) isNull(bool value)
+        auto isNull(bool value)
         {
             _isNull = value;
 

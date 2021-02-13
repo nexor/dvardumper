@@ -1,7 +1,8 @@
 module dvardumper.dumper;
 
 import std.stdio : write;
-import dvardumper.typevar;
+import dvardumper.typevar : toTypeVar, TypeVar, BasicTypeVar, PointerTypeVar,
+    ArrayTypeVar, AggregateTypeVar, UnknownTypeVar;
 import std.outbuffer : OutBuffer;
 import std.array : empty;
 
@@ -33,7 +34,7 @@ class VarDumper : Dumper
             buffer = new OutBuffer();
         }
 
-        string doDump(TypeVar var, DumpOptions dumpOptions)
+        string doDump(TypeVar var, DumpOptions dumpOptions = DumpOptions())
         {
             buffer.clear();
             buffer.writefln("%s", "---------------");
@@ -112,19 +113,21 @@ class VarDumper : Dumper
             if (dumpOptions.showSize) {
                 buffer.writef("(%d)", v.size);
             }
-            buffer.writef(" %s[%d*%d]", v.name, v.elementCount, v.elementSize);
-
-            if (v.isPrintable) {
-                if (v.isNull) {
-                    buffer.writefln(` = null`);
-                } else if (v.elementCount > v.maxPrintCount) {
-                    string value = cast(string)v.array[0..v.elementSize * v.maxPrintCount];
-                    buffer.writefln(` = "%s ..."`, value);
+            buffer.writef(" %s", v.name);
+            if (!v.isNull) {
+                buffer.writef("[%d*%d]", v.elementCount, v.elementSize);
+                if (v.isPrintable) {
+                    if (v.elementCount > v.maxPrintCount) {
+                        string value = cast(string)v.array[0..v.elementSize * v.maxPrintCount];
+                        buffer.writefln(` = "%s ..."`, value);
+                    } else {
+                        buffer.writefln(` = "%s"`, cast(string)v.array);
+                    }
                 } else {
-                    buffer.writefln(` = "%s"`, cast(string)v.array);
+                    buffer.writefln(": <%d bytes of data>", v.elementCount * v.elementSize);
                 }
             } else {
-                buffer.writefln(": <%d bytes of data>", v.elementCount * v.elementSize);
+                buffer.writefln(` = null`);
             }
         }
 
@@ -165,4 +168,22 @@ class VarDumper : Dumper
 
             buffer.write(indentString.replicate(level));
         }
+}
+
+@("Test doDump dumpArrayTypeVar null value")
+unittest
+{
+    import unit_threaded;
+
+    auto dumper = new VarDumper;
+
+    string nullString = null;
+    auto dumpOptions = DumpOptions();
+
+    auto typeVar = nullString.toTypeVar(nullString.stringof);
+
+    dumper.doDump(typeVar, dumpOptions).should ==
+        "---------------\n" ~
+        "string nullString = null\n" ~
+        "===============\n";
 }
