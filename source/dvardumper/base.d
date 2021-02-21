@@ -5,8 +5,9 @@ import dvardumper.typevar : toTypeVar, TypeVar, BasicTypeVar, PointerTypeVar,
     ArrayTypeVar, AggregateTypeVar, UnknownTypeVar;
 import dvardumper.dumper.basic : BasicTypeDumper;
 import dvardumper.dumper.pointer : PointerTypeDumper;
+import dvardumper.dumper.array : ArrayTypeDumper;
+import dvardumper.dumper.aggregate : AggregateTypeDumper;
 import std.outbuffer : OutBuffer;
-import std.array : empty;
 
 void dump(T)(Dumper d, T var, string varname = "")
 {
@@ -39,6 +40,8 @@ class VarDumper : Dumper
         string indentString;
         BasicTypeDumper basicTypeDumper;
         PointerTypeDumper pointerTypeDumper;
+        ArrayTypeDumper arrayTypeDumper;
+        AggregateTypeDumper aggregateTypeDumper;
 
     public:
         this()
@@ -46,6 +49,8 @@ class VarDumper : Dumper
             buffer = new OutBuffer();
             basicTypeDumper = new BasicTypeDumper(buffer);
             pointerTypeDumper = new PointerTypeDumper(buffer);
+            arrayTypeDumper = new ArrayTypeDumper(buffer);
+            aggregateTypeDumper = new AggregateTypeDumper(buffer, this);
         }
 
         string opCall(TypeVar var, DumpOptions dumpOptions = DumpOptions(), ushort indentLevel = 0)
@@ -61,26 +66,16 @@ class VarDumper : Dumper
             return buffer.toString();
         }
 
-    protected:
-        string formatVarName(string name)
-        {
-            if (name != "") {
-                return `"` ~ name ~ `"`;
-            }
-
-            return "";
-        }
-
-        void dumpInternal(TypeVar var, ushort level, DumpOptions dumpOptions)
+    public void dumpInternal(TypeVar var, ushort level, DumpOptions dumpOptions)
         {
             if (auto v = cast(BasicTypeVar)var) {
                 basicTypeDumper(v, dumpOptions, level);
             } else if (auto v = cast(PointerTypeVar)var) {
                 pointerTypeDumper(v, dumpOptions, level);
             } else if (auto v = cast(ArrayTypeVar)var) {
-                dumpArrayTypeVar(v, level, dumpOptions);
+                arrayTypeDumper(v, dumpOptions, level);
             } else if (auto v = cast(AggregateTypeVar)var) {
-                dumpAggregateTypeVar(v, level, dumpOptions);
+                aggregateTypeDumper(v, dumpOptions, level);
             } else if (auto v = cast(UnknownTypeVar)var) {
                 dumpUnknownTypeVar(v, level);
             } else {
@@ -88,79 +83,20 @@ class VarDumper : Dumper
             }
         }
 
-        void dumpArrayTypeVar(ArrayTypeVar v, ushort level, DumpOptions dumpOptions)
-        {
-            writeIndent(level);
-            string typeName = v.typeName;
-
-            auto aliasMap = [
-                typeid(string).toString() : string.stringof,
-                typeid(dstring).toString() : dstring.stringof,
-                typeid(wstring).toString() : wstring.stringof
-            ];
-
-            if (typeName in aliasMap) {
-                typeName = aliasMap[typeName];
-            }
-
-            buffer.writef("%s", typeName);
-            if (dumpOptions.showSize) {
-                buffer.writef("(%d)", v.size);
-            }
-            buffer.writef(" %s", v.name);
-            if (!v.isNull) {
-                buffer.writef("[%d*%d]", v.elementCount, v.elementSize);
-                if (v.isPrintable) {
-                    if (v.elementCount > v.maxPrintCount) {
-                        string value = cast(string)v.array[0..v.elementSize * v.maxPrintCount];
-                        buffer.writefln(` = "%s ..."`, value);
-                    } else {
-                        buffer.writefln(` = "%s"`, cast(string)v.array);
-                    }
-                } else {
-                    buffer.writefln(": <%d bytes of data>", v.elementCount * v.elementSize);
-                }
-            } else {
-                buffer.writefln(` = null`);
-            }
-        }
-
-        void dumpAggregateTypeVar(AggregateTypeVar v, ushort level, DumpOptions dumpOptions)
-        {
-            writeIndent(level);
-            buffer.writef("%s", v.typeName);
-            if (dumpOptions.showSize) {
-                buffer.writef("(%d)", v.size);
-            }
-
-            if (!v.name.empty) {
-                buffer.writef(" %s", v.name);
-            }
-
-            if (!v.isNull) {
-                buffer.writefln(" = {");
-                foreach (TypeVar field; v.fields) {
-                    dumpInternal(field, cast(ushort)(level+1), dumpOptions);
-                }
-                writeIndent(level);
-                buffer.writefln("}");
-
-            } else {
-                buffer.writefln(" = null");
-            }
-        }
-
+    protected:
         void dumpUnknownTypeVar(UnknownTypeVar v, ushort level)
         {
-            writeIndent(level);
+            buffer.writeIndent(indentString, level);
             buffer.writefln("%s(%d) %s: (unknown type var)", v.typeName, v.size, v.name);
         }
 
-        void writeIndent(ushort level = 0)
+        string formatVarName(string name)
         {
-            import std.array : replicate;
+            if (name != "") {
+                return `"` ~ name ~ `"`;
+            }
 
-            buffer.write(indentString.replicate(level));
+            return "";
         }
 }
 
