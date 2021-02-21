@@ -67,37 +67,27 @@ class VarDumper : Dumper
         }
 
     public void dumpInternal(TypeVar var, ushort level, DumpOptions dumpOptions)
-        {
-            if (auto v = cast(BasicTypeVar)var) {
-                basicTypeDumper(v, dumpOptions, level);
-            } else if (auto v = cast(PointerTypeVar)var) {
-                pointerTypeDumper(v, dumpOptions, level);
-            } else if (auto v = cast(ArrayTypeVar)var) {
-                arrayTypeDumper(v, dumpOptions, level);
-            } else if (auto v = cast(AggregateTypeVar)var) {
-                aggregateTypeDumper(v, dumpOptions, level);
-            } else if (auto v = cast(UnknownTypeVar)var) {
-                dumpUnknownTypeVar(v, level);
-            } else {
-                assert(0, "Can't determine TypeVar instance");
-            }
+    {
+        if (auto v = cast(BasicTypeVar)var) {
+            basicTypeDumper(v, dumpOptions, level);
+        } else if (auto v = cast(PointerTypeVar)var) {
+            pointerTypeDumper(v, dumpOptions, level);
+        } else if (auto v = cast(ArrayTypeVar)var) {
+            arrayTypeDumper(v, dumpOptions, level);
+        } else if (auto v = cast(AggregateTypeVar)var) {
+            aggregateTypeDumper(v, dumpOptions, level);
+        } else if (auto v = cast(UnknownTypeVar)var) {
+            dumpUnknownTypeVar(v, level);
+        } else {
+            assert(0, "Can't determine TypeVar instance");
         }
+    }
 
-    protected:
-        void dumpUnknownTypeVar(UnknownTypeVar v, ushort level)
-        {
-            buffer.writeIndent(indentString, level);
-            buffer.writefln("%s(%d) %s: (unknown type var)", v.typeName, v.size, v.name);
-        }
-
-        string formatVarName(string name)
-        {
-            if (name != "") {
-                return `"` ~ name ~ `"`;
-            }
-
-            return "";
-        }
+    protected void dumpUnknownTypeVar(UnknownTypeVar v, ushort level)
+    {
+        buffer.writeIndent(indentString, level);
+        buffer.writefln("%s(%d) %s: (unknown type var)", v.typeName, v.size, v.name);
+    }
 }
 
 struct A
