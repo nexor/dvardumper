@@ -4,6 +4,7 @@ import std.stdio : write;
 import dvardumper.typevar : toTypeVar, TypeVar, BasicTypeVar, PointerTypeVar,
     ArrayTypeVar, AggregateTypeVar, UnknownTypeVar;
 import dvardumper.dumper.basic : BasicTypeDumper;
+import dvardumper.dumper.pointer : PointerTypeDumper;
 import std.outbuffer : OutBuffer;
 import std.array : empty;
 
@@ -37,12 +38,14 @@ class VarDumper : Dumper
         OutBuffer buffer;
         string indentString;
         BasicTypeDumper basicTypeDumper;
+        PointerTypeDumper pointerTypeDumper;
 
     public:
         this()
         {
             buffer = new OutBuffer();
             basicTypeDumper = new BasicTypeDumper(buffer);
+            pointerTypeDumper = new PointerTypeDumper(buffer);
         }
 
         string opCall(TypeVar var, DumpOptions dumpOptions = DumpOptions(), ushort indentLevel = 0)
@@ -73,7 +76,7 @@ class VarDumper : Dumper
             if (auto v = cast(BasicTypeVar)var) {
                 basicTypeDumper(v, dumpOptions, level);
             } else if (auto v = cast(PointerTypeVar)var) {
-                dumpPointerTypeVar(v, level, dumpOptions);
+                pointerTypeDumper(v, dumpOptions, level);
             } else if (auto v = cast(ArrayTypeVar)var) {
                 dumpArrayTypeVar(v, level, dumpOptions);
             } else if (auto v = cast(AggregateTypeVar)var) {
@@ -83,16 +86,6 @@ class VarDumper : Dumper
             } else {
                 assert(0, "Can't determine TypeVar instance");
             }
-        }
-
-        void dumpPointerTypeVar(PointerTypeVar v, ushort level, DumpOptions dumpOptions)
-        {
-            writeIndent(level);
-            buffer.writef("%s", v.typeName);
-            if (dumpOptions.showSize) {
-                buffer.writef("(%d)", v.size);
-            }
-            buffer.writefln(" %s = %#x", v.name, v.pointer);
         }
 
         void dumpArrayTypeVar(ArrayTypeVar v, ushort level, DumpOptions dumpOptions)
