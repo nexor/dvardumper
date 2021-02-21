@@ -170,6 +170,30 @@ class VarDumper : Dumper
         }
 }
 
+struct A
+{
+    int a = 1;
+}
+
+@("Test doDump dumpArrayTypeVar array of struct dump")
+unittest
+{
+    import unit_threaded;
+
+    auto dumper = new VarDumper;
+
+    A[3] astructs;
+
+    auto dumpOptions = DumpOptions();
+
+    auto typeVar = astructs.toTypeVar(astructs.stringof);
+
+    dumper.doDump(typeVar, dumpOptions).should ==
+        "---------------\n" ~
+        "dvardumper.dumper.A[3] astructs[3*4]: <12 bytes of data>\n" ~
+        "===============\n";
+}
+
 @("Test doDump dumpArrayTypeVar null value")
 unittest
 {
