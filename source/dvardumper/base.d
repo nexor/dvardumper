@@ -1,41 +1,53 @@
-module dvardumper.dumper;
+module dvardumper.base;
 
 import std.stdio : write;
 import dvardumper.typevar : toTypeVar, TypeVar, BasicTypeVar, PointerTypeVar,
     ArrayTypeVar, AggregateTypeVar, UnknownTypeVar;
+import dvardumper.dumper.basic : BasicTypeDumper;
 import std.outbuffer : OutBuffer;
 import std.array : empty;
 
 void dump(T)(Dumper d, T var, string varname = "")
 {
-    d.doDump(var.toTypeVar(varname), DumpOptions())
+    d(var.toTypeVar(varname), DumpOptions())
      .write();
 }
 
 interface Dumper
 {
-    string doDump(TypeVar, DumpOptions);
+    string opCall(TypeVar, DumpOptions, ushort = 0);
 }
 
 struct DumpOptions
 {
     bool showSize = false;
+    string indentString = "  ";
+}
+
+void writeIndent(OutBuffer buffer, string indentString, ushort level = 0)
+{
+    import std.array : replicate;
+
+    buffer.write(indentString.replicate(level));
 }
 
 class VarDumper : Dumper
 {
     private:
         OutBuffer buffer;
-        string indentString = "  ";
+        string indentString;
+        BasicTypeDumper basicTypeDumper;
 
     public:
         this()
         {
             buffer = new OutBuffer();
+            basicTypeDumper = new BasicTypeDumper(buffer);
         }
 
-        string doDump(TypeVar var, DumpOptions dumpOptions = DumpOptions())
+        string opCall(TypeVar var, DumpOptions dumpOptions = DumpOptions(), ushort indentLevel = 0)
         {
+            indentString = dumpOptions.indentString;
             buffer.clear();
             buffer.writefln("%s", "---------------");
 
@@ -59,7 +71,7 @@ class VarDumper : Dumper
         void dumpInternal(TypeVar var, ushort level, DumpOptions dumpOptions)
         {
             if (auto v = cast(BasicTypeVar)var) {
-                dumpBasicTypeVar(v, level, dumpOptions);
+                basicTypeDumper(v, dumpOptions, level);
             } else if (auto v = cast(PointerTypeVar)var) {
                 dumpPointerTypeVar(v, level, dumpOptions);
             } else if (auto v = cast(ArrayTypeVar)var) {
@@ -71,17 +83,6 @@ class VarDumper : Dumper
             } else {
                 assert(0, "Can't determine TypeVar instance");
             }
-        }
-
-        void dumpBasicTypeVar(BasicTypeVar v, ushort level, DumpOptions dumpOptions)
-        {
-            writeIndent(level);
-            buffer.writef("%s", v.typeName);
-            if (dumpOptions.showSize) {
-                buffer.writef("(%d)", v.size);
-            }
-
-            buffer.writefln(" %s = %s", v.name, v.value);
         }
 
         void dumpPointerTypeVar(PointerTypeVar v, ushort level, DumpOptions dumpOptions)
@@ -175,7 +176,7 @@ struct A
     int a = 1;
 }
 
-@("Test doDump dumpArrayTypeVar array of struct dump")
+@("Test opCall dumpArrayTypeVar array of struct dump")
 unittest
 {
     import unit_threaded;
@@ -188,13 +189,13 @@ unittest
 
     auto typeVar = astructs.toTypeVar(astructs.stringof);
 
-    dumper.doDump(typeVar, dumpOptions).should ==
+    dumper(typeVar, dumpOptions).should ==
         "---------------\n" ~
-        "dvardumper.dumper.A[3] astructs[3*4]: <12 bytes of data>\n" ~
+        "dvardumper.base.A[3] astructs[3*4]: <12 bytes of data>\n" ~
         "===============\n";
 }
 
-@("Test doDump dumpArrayTypeVar null value")
+@("Test opCall dumpArrayTypeVar null value")
 unittest
 {
     import unit_threaded;
@@ -206,7 +207,7 @@ unittest
 
     auto typeVar = nullString.toTypeVar(nullString.stringof);
 
-    dumper.doDump(typeVar, dumpOptions).should ==
+    dumper(typeVar, dumpOptions).should ==
         "---------------\n" ~
         "string nullString = null\n" ~
         "===============\n";
