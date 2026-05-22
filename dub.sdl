@@ -4,6 +4,10 @@ authors     "Pavel Chebotarev"
 
 license "MIT"
 
+configuration "library" {
+    targetType "library"
+}
+
 configuration "unittest" {
     dependency "unit-threaded" version="*"
     mainSourceFile "bin/ut.d"

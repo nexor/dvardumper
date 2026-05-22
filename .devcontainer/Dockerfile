@@ -1,4 +1,4 @@
-FROM debian:buster-slim as builder
+FROM debian:bookworm-slim AS builder
 
 ARG USERNAME=vscode
 ARG USER_UID=1000
@@ -28,25 +28,9 @@ RUN apt-get autoremove -y \
     && apt-get clean -y \
     && rm -rf /var/lib/apt/lists/*
 
-RUN apt-get update && apt-get install -y curl libcurl4 build-essential zlib1g-dev libssl-dev libxml2
-RUN curl -fsS -o /tmp/install.sh https://dlang.org/install.sh
-
-ENV COMPILER_LDC=ldc-1.24.0
-ENV COMPILER_DMD=dmd-2.094.2
-
-RUN bash /tmp/install.sh -p /dlang install "${COMPILER_LDC}"
-RUN bash /tmp/install.sh -p /dlang install "${COMPILER_DMD}"
-
-#RUN rm /tmp/install.sh \
-# && apt-get auto-remove -y curl build-essential \
-# && apt-get install -y gcc cmake \
-# && rm -rf /var/cache/apt /dlang/${COMPILER}-*/lib32 /dlang/dub-1.0.0/dub.tar.gz
-
-ENV PATH=/dlang/${COMPILER_DMD}/linux/bin64:/dlang/${COMPILER_LDC}/bin:${PATH} \
-    LD_LIBRARY_PATH=/dlang/${COMPILER_DMD}/lib:/dlang/${COMPILER_LDC}/lib:${LD_LIBRARY_PATH} \
-    LIBRARY_PATH=/dlang/${COMPILER_DMD}/lib:/dlang/${COMPILER_LDC}/lib:${LIBRARY_PATH}
-
-RUN chown -R vscode:vscode /dlang
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libcurl4 build-essential zlib1g-dev libssl-dev libxml2 \
+    && rm -rf /var/lib/apt/lists/*
 
 # Switch back to dialog for any ad-hoc use of apt-get
 ENV DEBIAN_FRONTEND=dialog

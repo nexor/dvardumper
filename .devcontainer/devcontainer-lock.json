@@ -1,0 +1,9 @@
+{
+  "features": {
+    "ghcr.io/devcontainers-extra/features/d:1": {
+      "version": "1.0.3",
+      "resolved": "ghcr.io/devcontainers-extra/features/d@sha256:70fa3eb6cb26fc16714a691d05806a88ddbee50f033947daf4153d5d07fc1138",
+      "integrity": "sha256:70fa3eb6cb26fc16714a691d05806a88ddbee50f033947daf4153d5d07fc1138"
+    }
+  }
+}

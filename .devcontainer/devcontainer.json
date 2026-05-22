@@ -2,6 +2,13 @@
 	"name": "vscode-dlang",
 	"dockerFile": "Dockerfile",
 
+	"features": {
+		"ghcr.io/devcontainers-extra/features/d:1": {
+			"compiler": "dmd",
+			"version": "latest"
+		}
+	},
+
 	"appPort": [],
 
 	"settings": {
